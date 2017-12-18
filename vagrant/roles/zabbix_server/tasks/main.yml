@@ -1,0 +1,168 @@
+---
+# tasks file for zabbix_server
+#
+- name: Configure Ansible pre-requisites
+  yum:
+    name: python-psycopg2, libsemanage-python
+    state: present
+
+- name: Configure Zabbix Repo
+  yum:
+    name: http://repo.zabbix.com/zabbix/3.0/rhel/7/x86_64/zabbix-release-3.0-1.el7.noarch.rpm
+    state: present
+
+- name: Install Zabbix RPMs
+  yum:
+    name: zabbix-get, zabbix-server-pgsql, zabbix-web-pgsql, postgresql-server
+    state: present
+
+- name: Configure Postgres
+  command: postgresql-setup initdb 
+    creates=/var/lib/pgsql/data/postgresql.conf
+
+- name: Update hba.conf file
+  blockinfile:
+    dest: /var/lib/pgsql/data/pg_hba.conf
+    block: |
+      local    zabbix     zabbix                         md5
+      host    zabbix     zabbix          127.0.0.1/32               md5
+      host    zabbix     zabbix          ::1/128               md5
+    regexp: "^host\\s*zabbix"
+    state: present
+    insertafter: "^#\\s*TYPE\\s*DATABASE"
+  register: updated_pg_hba
+
+- name: Is postgres running? (Check for possible restart)
+  shell: service postgresql status  warn=false
+  register: postgres_running 
+  ignore_errors: true
+  failed_when: falase
+  when: updated_pg_hba.changed
+
+- name: Stop postgres
+  service:
+    name: postgresql
+    state: stopped
+  when: updated_pg_hba.changed and "postgres_running.rc == 0"
+
+- name: Start Postgres Database
+  service:
+    name: postgresql
+    enabled: true
+    state: started
+
+- name: Configure Zabbix Database
+  become_user: postgres
+  postgresql_db:
+    name: zabbix
+    encoding: 'UTF-8'
+    login_user: postgres
+
+- name: Configure Zabbix databse user
+  become_user: postgres
+  postgresql_user:
+    db: zabbix
+    name: "{{ zabbix_db_user }}"
+    password: "{{ zabbix_db_password }}"
+    encrypted: true
+
+- name: Check for database population
+  shell: "echo $(echo \"select count(*) from pg_catalog.pg_tables where tableowner='zabbix'\" | psql -U zabbix -t zabbix)"
+  environment: 
+    PGPASSWORD: "{{ zabbix_db_password }}"
+    PGUSER: "{{ zabbix_db_user }}"
+  register: check_database
+  changed_when: false
+
+#- debug: var=check_database
+
+- name: Populate Zabbix Schema
+#  shell: "zcat /usr/share/doc/zabbix-server-pgsql-*/create.sql.gz | psql zabbix"
+  shell: "zcat /usr/share/doc/zabbix-server-pgsql-*/create.sql.gz | sed '/INSERT INTO hosts.*Zabbix server/s/Zabbix server/{{ zabbix_server_name }}/g'| psql zabbix"
+  environment: 
+    PGPASSWORD: "{{ zabbix_db_password }}"
+    PGUSER: "{{ zabbix_db_user }}"
+  when: "check_database.stdout == '0'"
+#  register: populate_output
+
+#- debug: var=populate_output
+
+- name: Update Zabbix Server conf file
+  lineinfile:
+    dest: /etc/zabbix/zabbix_server.conf
+    line: "DBPassword= {{ zabbix_db_password }}"
+    regexp: "^DBPassword="
+    state: present
+    insertafter: "^# DBPassword="
+  register: updated_zabbix_server_conf
+
+- name: Is Zabbix Server running? (Check for possible restart)
+  shell: service zabbix-server status  warn=false
+  register: zabbix_server_running 
+  ignore_errors: true
+  failed_when: falase
+  when: updated_zabbix_server_conf.changed
+
+- name: Stop Zabbix Server
+  service:
+    name: zabbix-server
+    state: stopped
+  when: updated_zabbix_server_conf.changed and "zabbix_server_running.rc == 0"
+
+- name: Start Zabbix Server
+  service:
+    name: zabbix-server
+    enabled: true
+    state: started
+
+- name: Update Zabbix Server web conf file
+  replace:
+    dest: /etc/httpd/conf.d/zabbix.conf
+    replace: "php_value date.timezone America/New_York"
+    regexp: "# php_value date.timezone Europe\\/Riga"
+  register: updated_zabbix_server_web_conf
+
+- name: Is Apache running? (Check for possible restart)
+  shell: service httpd status  warn=false
+  register: httpd_server_running 
+  ignore_errors: true
+  failed_when: falase
+  no_log: true
+  when: updated_zabbix_server_web_conf.changed
+
+- name: Stop Apache Server
+  service:
+    name: httpd
+    state: stopped
+  when: updated_zabbix_server_web_conf.changed and "httpd_server_running.rc == 0"
+
+- name: Start Apache Server
+  service:
+    name: httpd
+    enabled: true
+    state: started
+
+- name: Create Zabbix Web Config file
+  template:
+    src: zabbix_conf.php
+    dest: /etc/zabbix/web/zabbix.conf.php
+    owner: apache
+    group: apache
+    mode: 0644
+    setype: httpd_sys_rw_content_t
+
+- name: Create Zabbix Maintenance Config file
+  template:
+    src: maintenance_inc.php
+    dest: /etc/zabbix/web/maintenance.inc.php
+    owner: root
+    group: root
+    mode: 0644
+    setype: httpd_sys_rw_content_t
+
+- name: Allow web server to communicate to database
+  seboolean:
+#    name: httpd_can_network_connect_db
+    name: httpd_can_network_connect
+    state: yes
+    persistent: yes

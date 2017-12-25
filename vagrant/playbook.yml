@@ -1,7 +1,126 @@
 ---
 - hosts: all
   become: true
-  roles:
-  - zabbix_server
-  - zabbix_agent
+  tasks:
+  - name: Set SELinux to permissive
+    selinux:
+      state: permissive
+      policy: targeted
+
+  - name: Install needed RPMs
+    yum:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - gcc
+      - pcre
+      - pcre-devel
+      - libevent
+      - libevent-devel
+      - postgresql
+      - postgresql-devel
+      - postgresql-server
+      - python-psycopg2
+      - libsemanage-python
+
+  - name: Add Zabbix group
+    group:
+      name: zabbix
+      state: present
+
+  - name: add Zabbix User
+    user:
+      name: zabbix
+      state: present
+      group: zabbix
+
+  - name: Configure Postgres
+    command: postgresql-setup initdb
+    args:
+      creates: /var/lib/pgsql/data/postgresql.conf
+
+  - name: Update hba.conf file
+    blockinfile:
+      dest: /var/lib/pgsql/data/pg_hba.conf
+      block: |
+        local    zabbix     zabbix                         md5
+        host    zabbix     zabbix          127.0.0.1/32               md5
+        host    zabbix     zabbix          ::1/128               md5
+      regexp: "^host\\s*zabbix"
+      state: present
+      insertafter: "^#\\s*TYPE\\s*DATABASE"
+    register: updated_pg_hba
+
+  - name: Is postgres running? (Check for possible restart)
+    shell: service postgresql status  warn=false
+    register: postgres_running
+    ignore_errors: true
+    failed_when: falase
+    when: updated_pg_hba.changed
+
+  - name: Stop postgres
+    service:
+      name: postgresql
+      state: stopped
+    when: updated_pg_hba.changed and "postgres_running.rc == 0"
+
+  - name: Start Postgres Database
+    service:
+      name: postgresql
+      enabled: true
+      state: started
+
+  - name: Configure Zabbix Database
+    become_user: postgres
+    postgresql_db:
+      name: zabbix
+      encoding: 'UTF-8'
+      login_user: postgres
+
+  - name: Configure Zabbix databse user
+    become_user: postgres
+    postgresql_user:
+      db: zabbix
+      name: zabbix
+      password: zabbix
+      encrypted: true
+
+  - name: Check for database population
+    shell: "echo $(echo \"select count(*) from pg_catalog.pg_tables where tableowner='zabbix'\" | psql -U zabbix -t zabbix)"
+    environment:
+      PGPASSWORD: zabbix
+      PGUSER: zabbix
+    register: check_database
+    changed_when: false
+
+  - debug: var=check_database
+
+  - name: Populate Zabbix Schema
+    shell: "zcat /usr/share/doc/zabbix-server-pgsql-*/create.sql.gz | psql zabbix"
+    #shell: "zcat /usr/share/doc/zabbix-server-pgsql-*/create.sql.gz | sed '/INSERT INTO hosts.*Zabbix server/s/Zabbix server/{{ zabbix_server_name }}/g'| psql zabbix"
+    environment:
+      PGPASSWORD: zabbix
+      PGUSER: zabbix
+    when: "check_database.stdout == '0'"
+#  register: populate_output
+
+
+  - name: Configure Zabbix Makefile
+    shell: ./configure --with-postgresql --enable-server --enable-agent
+    args:
+      chdir: /zabbix
+      creates: Makefile
+
+  - name: Compile Zabbix
+    shell: make install
+    args:
+      chdir: /zabbix
+
+
+
+#- hosts: all
+#  beocme: true
+#  roles:
+#  - zabbix_server
+#  - zabbix_agent
 

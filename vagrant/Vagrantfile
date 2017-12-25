@@ -42,7 +42,7 @@ Vagrant.configure(2) do |config|
   # config.vm.synced_folder "../data", "/vagrant_data"
 
   #config.vm.synced_folder "/mirrors", "/mirrors", type: '9p', accessmode: "mapped"
-  #config.vm.synced_folder "/mirrors", "/mirrors"
+  config.vm.synced_folder "../", "/zabbix", type: "rsync"
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
@@ -88,11 +88,11 @@ Vagrant.configure(2) do |config|
   #config.vm.network "vagrant-libvirt", ip: "192.168.121.10"
 
   config.vm.provision "ansible" do |ansible|
-    ansible.extra_vars = {
-      zabbix_agent_name: "Zabbix Vagrant",
-      zabbix_server_address: "127.0.0.1",
-      zabbix_server_name: "Zabbix Vagrant"
-    }
+#    ansible.extra_vars = {
+#      zabbix_agent_name: "Zabbix Vagrant",
+#      zabbix_server_address: "127.0.0.1",
+#      zabbix_server_name: "Zabbix Vagrant"
+#    }
     ansible.playbook = "playbook.yml"
   end
 end

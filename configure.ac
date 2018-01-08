@@ -1250,6 +1250,20 @@ if test "x$server" = "xyes" || test "x$proxy" = "xyes"; then
 	PROXY_LDFLAGS="${PROXY_LDFLAGS} ${DB_LDFLAGS}"
 	PROXY_LIBS="${PROXY_LIBS} ${DB_LIBS}"
 
+    dnl Checking for Lua
+	AX_PROG_LUA([5.1])
+	if test "x$want_lua" = "xyes"; then
+	        if test "x$found_lua" != "xyes"; then
+	                AC_MSG_ERROR([Lua library not found])
+	        else
+	                have_lua="yes"
+	        fi
+	fi
+
+	CFLAGS="${CFLAGS} ${LUA_CPPFLAGS}"
+	SERVER_LDFLAGS="${SERVER_LDFLAGS} ${LUA_LDFLAGS}"
+	SERVER_LIBS="${SERVER_LIBS} ${LUA_LIBS}"
+
 	dnl Checking for Jabber libraries
 	JABBER_CHECK_CONFIG()
 	if test "x$want_jabber" = "xyes"; then

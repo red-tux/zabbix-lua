@@ -1100,6 +1100,7 @@ have_ipmi="no"
 have_ipv6="no"
 have_ssh2="no"
 have_tls="no"
+have_lua="no"
 
 
 if test "x$ipv6" = "xyes"; then
@@ -1251,18 +1252,22 @@ if test "x$server" = "xyes" || test "x$proxy" = "xyes"; then
 	PROXY_LIBS="${PROXY_LIBS} ${DB_LIBS}"
 
     dnl Checking for Lua
-	AX_PROG_LUA([5.1])
-	if test "x$want_lua" = "xyes"; then
-	        if test "x$found_lua" != "xyes"; then
-	                AC_MSG_ERROR([Lua library not found])
-	        else
-	                have_lua="yes"
-	        fi
+    AC_ARG_WITH([lua],[AS_HELP_STRING([--with-lua],[Enable Lua support])])
+
+	AX_PROG_LUA([5.1],[],[found_lua="yes"])
+	if test "x$with_lua" = "xyes"; then
+	  if test "x$found_lua" != "xyes"; then
+	    AC_MSG_ERROR([Lua library not found])
+	  else
+	    have_lua="yes"
+	    AX_LUA_HEADERS([],[AC_MSG_ERROR([Lua headers not found])])
+	    AX_LUA_LIBS([],[AC_MSG_ERROR([Lua libraries not found])])
+	  fi
 	fi
 
-	CFLAGS="${CFLAGS} ${LUA_CPPFLAGS}"
-	SERVER_LDFLAGS="${SERVER_LDFLAGS} ${LUA_LDFLAGS}"
-	SERVER_LIBS="${SERVER_LIBS} ${LUA_LIBS}"
+	CFLAGS="${CFLAGS} ${CPPFLAGS}"
+#	SERVER_LDFLAGS="${SERVER_LDFLAGS} ${LUA_LDFLAGS}"
+	SERVER_LIBS="${SERVER_LIBS} ${LUA_LIB}"
 
 	dnl Checking for Jabber libraries
 	JABBER_CHECK_CONFIG()
@@ -1739,6 +1744,7 @@ echo "  Server details:
     SSH:                   ${have_ssh2}
     TLS:                   ${have_tls}
     ODBC:                  ${have_unixodbc}
+    LUA:                   ${have_lua}
     Linker flags:          ${SERVER_LDFLAGS} ${LDFLAGS}
     Libraries:             ${SERVER_LIBS} ${LIBS}"
 

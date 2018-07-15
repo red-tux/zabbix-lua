@@ -1,0 +1,57 @@
+Working list of lua entries yet to be ported over into new code.
+
+frontends/php/items.php:96:					ITEM_TYPE_IPMI,ITEM_TYPE_SSH,ITEM_TYPE_TELNET,ITEM_TYPE_JMX,ITEM_TYPE_CALCULATED,ITEM_TYPE_SNMPTRAP,ITEM_TYPE_LUA)),'isset({save})'),
+frontends/php/items.php:192:				ITEM_TYPE_IPMI,ITEM_TYPE_SSH,ITEM_TYPE_TELNET,ITEM_TYPE_JMX,ITEM_TYPE_CALCULATED,ITEM_TYPE_SNMPTRAP,ITEM_TYPE_LUA)),null),
+
+frontends/php/api/classes/class.citemgeneral.php:227:					|| ($fullItem['type'] == ITEM_TYPE_LUA && strcmp($fullItem['key_'], ZBX_DEFAULT_KEY_LUA) == 0)) {
+
+frontends/php/api/classes/class.citem.php:931:			if ($item['type'] == ITEM_TYPE_LUA) {
+frontends/php/api/classes/class.citem.php:1007:			if ($item_type == ITEM_TYPE_LUA) {
+
+frontends/php/include/forms.inc.php:1365:				case ITEM_TYPE_LUA:
+frontends/php/include/forms.inc.php:1429:		$spanL = new CSpan(S_LUA_SCRIPT);
+frontends/php/include/forms.inc.php:1431:		zbx_subarray_push($typeVisibility, ITEM_TYPE_LUA, 'label_lua');
+frontends/php/include/forms.inc.php:1457:		zbx_subarray_push($typeVisibility, ITEM_TYPE_LUA, 'params_lua');
+frontends/php/include/forms.inc.php:1458:		zbx_subarray_push($typeVisibility, ITEM_TYPE_LUA, 'row_params');
+frontends/php/include/items.inc.php:95:		ITEM_TYPE_LUA => _('Lua script'),
+
+frontends/php/include/locales/en_gb.inc.php:576:	'S_LUA_SCRIPT_TYPE'=>					_('Lua script'),
+frontends/php/include/locales/en_gb.inc.php:577:	'S_LUA_SCRIPT'=>					_('Script'),
+
+frontends/php/include/defines.inc.php:326:define('ITEM_TYPE_LUA',				18);
+frontends/php/include/defines.inc.php:343:define('ZBX_DEFAULT_KEY_LUA',			'lua[<unique short description>]');
+
+src/zabbix_server/server.c:125:int	CONFIG_LUA_POLLER_FORKS		= 1;
+src/zabbix_server/server.c:177:char	*CONFIG_LUA_SCRIPT_LIBRARY	= NULL;
+src/zabbix_server/server.c:178:char	*CONFIG_LUA_DEFAULT_USER	= NULL;
+src/zabbix_server/server.c:180:char	CONFIG_LUA_CHECK_PERMISSIONS	= 0;
+src/zabbix_server/server.c:328:		{"StartLUAPollers",		&CONFIG_LUA_POLLER_FORKS,		TYPE_INT,
+src/zabbix_server/server.c:330:		{"LuaScriptLibrary",		&CONFIG_LUA_SCRIPT_LIBRARY,		TYPE_STRING,
+src/zabbix_server/server.c:332:		{"LuaCheckPermissions",		&CONFIG_LUA_CHECK_PERMISSIONS,		TYPE_INT,
+src/zabbix_server/server.c:334:		{"LuaDefaltUser",		&CONFIG_LUA_DEFAULT_USER,		TYPE_STRING,
+src/zabbix_server/server.c:388:	if (CONFIG_LUA_DEFAULT_USER == NULL)
+src/zabbix_server/server.c:390:		CONFIG_LUA_DEFAULT_USER = strdup("guest");
+src/zabbix_server/server.c:541:#ifdef HAVE_LUA
+src/zabbix_server/server.c:542:#	define LUA_FEATURE_STATUS "YES"
+src/zabbix_server/server.c:544:#	define LUA_FEATURE_STATUS " NO"
+src/zabbix_server/server.c:557:	zabbix_log(LOG_LEVEL_INFORMATION, "LUA Scripting:             " LUA_FEATURE_STATUS);
+src/zabbix_server/server.c:607:			+ CONFIG_SELFMON_FORKS + CONFIG_LUA_POLLER_FORKS;
+src/zabbix_server/server.c:776:	else if (server_num <= (server_count += CONFIG_LUA_POLLER_FORKS))
+src/zabbix_server/server.c:778:		INIT_SERVER(ZBX_PROCESS_TYPE_LUA, CONFIG_LUA_POLLER_FORKS);
+src/zabbix_server/server.c:780:		main_poller_loop(ZBX_POLLER_TYPE_LUA);
+
+src/zabbix_server/poller/poller.c:46:#ifdef HAVE_LUA
+src/zabbix_server/poller/poller.c:50:#endif  /* HAVE_LUA */
+src/zabbix_server/poller/poller.c:56:#ifdef HAVE_LUA
+src/zabbix_server/poller/poller.c:569:		case ITEM_TYPE_LUA:
+src/zabbix_server/poller/poller.c:570:#ifdef HAVE_LUA
+src/zabbix_server/poller/poller.c:574:			SET_MSG_RESULT(result, strdup("Support for LUA parameters was not compiled in"));
+src/zabbix_server/poller/poller.c:847:	#ifdef HAVE_LUA
+src/zabbix_server/poller/poller.c:848:	if (poller_type == ZBX_POLLER_TYPE_LUA)
+
+src/zabbix_server/poller/Makefile.am:5:if LUA
+src/zabbix_server/poller/Makefile.am:6:LUA_SOURCES = checks_lua.c checks_lua.h 
+src/zabbix_server/poller/Makefile.am:23:	$(LUA_SOURCES)
+
+src/zabbix_server/poller/checks_lua.h:1:#ifndef ZABBIX_CHECKS_LUA_H
+src/zabbix_server/poller/checks_lua.h:2:#define ZABBIX_CHECKS_LUA_H

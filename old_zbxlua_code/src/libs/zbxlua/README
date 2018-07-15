@@ -1,0 +1,173 @@
+===== Short user documentation for zbxlua library ====
+This library intent is to support simple scripting interface for
+zabbix engine. It should ease extending the zabbix with more user specific
+complex configuration.
+
+The are two places where can you use lua code. First are the Lua items, the
+second is ''LuaScriptLibrary'' file.
+
+==== Lua Item ====
+You can configure lua item the same way as a calculated one.
+
+Lua code has restricted environment to use. Symbols defined by zbxlua are:
+  * LOG\_LEVEL_\* constants
+  * ZABBIX_VERSION
+  * ZBX_FLAG_SEC
+  * ZBX_FLAG_VALUES
+  * Item
+  * uint64
+  * now
+  * zabbix_log
+and internal symbols from lua
+  * tostring
+  * unpack
+  * next
+  * tonumber
+  * _VERSION
+  * type
+  * pairs
+  * ipairs
+  * select
+  * error
+  * xpcall
+
+Library will also define these variables
+  * zbx_host - hostname of the item (string)
+  * zbx_hostid - hostid of the item (uint64)
+  * ARGV - array of arguments passed from item key difinition (table)
+
+Lua item code should call ''return'' with coresponding value to the
+item selected.
+
+==== Lua -> C API ====
+Description of the functions you can use from Lua script
+
+=== now() ===
+Returns current unix timestamp as a number.
+
+=== zabbix_log(level, message) ===
+Prints log message to zabbix server log with the level.
+
+=== uint64(number) ===
+Will create an uint64 number from regular one. This type is used by zabbix
+internaly to indetify ids of items, hosts, etc. You can use this one as
+regular lua number.
+
+=== Item ===
+For queriing item history, there is an Lua abstraction for Zabbix Item. You
+can use Item.find function to locate specific item and then use this to
+search history, etc.
+
+== Item.find()/Item.new() ==
+Tries to find item for specified searching attributes. This function can be
+called in several different ways
+  * Item.find(itemid) - itemdid = [number|uint64]
+  * Item.find(itemid, nodeid) - nodeid = [number|uint64]
+  * Item.find(host, key) - host = string, key = string
+
+If item can be found, this function returns nil.
+
+== Item:last_value() ==
+Returns last history value as a pair of '(clk, val)'. This is the same value
+that you can see on "Latest data" page and thus it has the same 255 chars
+limitations. If you want to get untrimmed result use Item:history() function
+instead. The return value is coerced to apropriate item type.
+
+== Item:history(count, type) ==
+Returns table with history values for item.
+  * count is the number of seconds or values to be returned
+  * type: optional (default to ZBX_FLAG_SEC)
+    * ZBX_FLAG_SEC    - consider count as seconds
+    * ZBX_FLAG_VALUES - consider count as number of values
+
+== Item:itemid() ==
+Returns itemid of item.
+
+== Zabbix internal evaluators ==
+You can use zabbix evaluators like count, max, min in the lua code as well.
+This functions are defined for Item class and their name is prefixed with
+"eval_". All of the functions take one param, the table of values which is
+passed to evaluator as a parameters
+
+Returning value is always number (or nil in case of fail)
+
+Example:
+  Item.find('mymachine', 'icmmpping'):eval_count({"#3", 0, "ne"})
+
+==== Library script ====
+After Lua pooler initialize it can run optional Lua script. You can configure
+this with ''LuaScriptLibrary'' configuration option. This script has full Lua
+environment, so you can do all nasty stuff you want here.
+
+=== Scope ===
+It's advisable but not necessary to prefix every variable and function with
+''local''. If you want to use any function later in your Lua item just define
+it in the ''Util'' module, like this
+  function Util.my_helper_fn()
+    ...
+  end
+
+If multiple users can define zabbix items in your settup, be very careful of
+what your write in your util functions. You may accidentaly enable lua items
+escaping from sanbox or worse let them manipulate with server environment.
+
+==== Data Security ====
+If you configure variable ''LuaCheckPermissions'' and set it to 1, the Item.find
+call will check if Lua item definer has proper permissions to access
+requested item. If not, the function behaves like the item did not exist.
+
+If the option ''LuaCheckPermissions'' and  the ''LuaScriptLibrary'' are
+both configured then the code executed in the script file is executed
+under userid == 1 (in normal zabbix setup this is Admin).
+
+This is obviously not the case for Util functions whose ''body'' is executed
+when they are called. For example this is not a security backdoor, because
+Item.find works with definer of the Lua item which called this util function
+  function Util.findme(itemid)
+    return Item.find(itemid)
+  end
+
+==== The problems ====
+Currently PHP frontend ensures that lua items will have stored userid when they
+are created. This simple solutions doesn't solve editing the item (currently
+the definer stayes the same) and defining Lua items in templates.
+
+==== Samples ====
+And finaly the reasons we did this Zabbix-Lua melt.
+
+=== Linear regression ===
+
+in LuaScriptLibrary:
+  function Util.linear_regression(item, count, type)
+    local data = item:history(count, type)
+    local sum_x = 0, sum_y = 0, sum_xy = 0, sum_xx = 0
+    for time, val in pairs(data) do
+      sum_x  = sum_x + time
+      sum_y  = sum_y + val
+      sum_xx = sum_xx + time * time
+      sum_xy = sum_xy + time * val
+    end
+
+    local a = (#data * sum_xy - sum_x * sum_y) / (#data * sum_xx - sum_x * sum_x);
+    local b = (sum_y - a * sum_x) / #data
+
+    return(a,b)
+  end
+
+and after that you can define lua item as follows
+
+name: TTL of root fs filling up
+key:  lua[/, 24]
+units: h
+code:
+  disk = ARGV[1]
+  item = Item.find(zbx_host, "vfs.fs.size["..disk..",pfree]")
+
+  secs = ARGV[2] * 3600
+  a, b = Util.regression(item, secs)
+
+  time_of_full_disk = (100 - b) / a
+  hours = (time_of_full_disk - now()) / 3600
+
+  return hours
+

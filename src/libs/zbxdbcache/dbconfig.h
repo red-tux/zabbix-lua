@@ -243,6 +243,14 @@ ZBX_DC_PSK;
 
 typedef struct
 {
+        zbx_uint64_t    itemid;
+        const char      *username;
+        const char      *params;
+}
+ZBX_DC_LUAITEM;
+
+typedef struct
+{
 	zbx_uint64_t	hostid;
 	zbx_uint64_t	proxy_hostid;
 	zbx_uint64_t	items_active_normal;		/* On enabled hosts these two fields store number of enabled */

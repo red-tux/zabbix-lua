@@ -203,6 +203,11 @@ static unsigned char	poller_by_item(unsigned char type, const char *key)
 				break;
 
 			return ZBX_POLLER_TYPE_JAVA;
+		case ITEM_TYPE_LUA:
+			if (0 == CONFIG_LUA_POLLER_FORKS)
+				break;
+
+			return ZBX_POLLER_TYPE_LUA;
 	}
 
 	return ZBX_NO_POLLER;
@@ -2185,6 +2190,7 @@ static void	DCsync_items(zbx_dbsync_t *sync, int flags)
 	ZBX_DC_INTERFACE_ITEM	*interface_snmpitem;
 	ZBX_DC_MASTERITEM	*master;
 	ZBX_DC_PREPROCITEM	*preprocitem;
+	ZBX_DC_LUAITEM		*luaitem;
 	ZBX_DC_ITEM_HK		*item_hk, item_hk_local;
 
 	time_t			now;
@@ -2610,6 +2616,27 @@ static void	DCsync_items(zbx_dbsync_t *sync, int flags)
 			item->unreachable = 0;
 			item->poller_type = ZBX_NO_POLLER;
 		}
+		/* Lua items */
+
+		if (ITEM_TYPE_LUA == item->type)
+		{
+			luaitem = DCfind_id(&config->luaitems, itemid, sizeof(ZBX_DC_LUAITEM), &found);
+
+			luaitem->itemid = itemid;
+			/* TODO: Check array positions, calculated items used to be substituting position 19 */
+			DCstrpool_replace(found, &luaitem->params, row[19]);
+			DCstrpool_replace(found, &luaitem->username, row[22]);
+
+		}
+		else if (NULL != (luaitem = zbx_hashset_search(&config->luaitems, &itemid)))
+		{
+			/* remove lua item parameters */
+
+			zbx_strpool_release(luaitem->params);
+			zbx_strpool_release(luaitem->username);
+			zbx_hashset_remove_direct(&config->luaitems,luaitem);
+		}
+
 
 		DCupdate_item_queue(item, old_poller_type, old_nextcheck);
 	}
@@ -5705,6 +5732,7 @@ static void	DCget_item(DC_ITEM *dst_item, const ZBX_DC_ITEM *src_item)
 	const ZBX_DC_SIMPLEITEM		*simpleitem;
 	const ZBX_DC_JMXITEM		*jmxitem;
 	const ZBX_DC_CALCITEM		*calcitem;
+	const ZBX_DC_LUAITEM		*luaitem;
 	const ZBX_DC_INTERFACE		*dc_interface;
 
 	dst_item->itemid = src_item->itemid;
@@ -5871,6 +5899,16 @@ static void	DCget_item(DC_ITEM *dst_item, const ZBX_DC_ITEM *src_item)
 			calcitem = zbx_hashset_search(&config->calcitems, &src_item->itemid);
 			dst_item->params = zbx_strdup(NULL, NULL != calcitem ? calcitem->params : "");
 			break;
+		case ITEM_TYPE_LUA:
+			if (NULL != (luaitem = zbx_hashset_search(&config->luaitems, &src_item->itemid)))
+			{
+				strscpy(dst_item->params_orig, luaitem->params);
+				strscpy(dst_item->username_orig, luaitem->username);
+				dst_item->params = NULL;
+				dst_item->username = NULL;
+				}
+			break;
+
 		default:
 			/* nothing to do */;
 	}

@@ -115,6 +115,7 @@ extern int	CONFIG_IPMIMANAGER_FORKS;
 extern int	CONFIG_ALERTMANAGER_FORKS;
 extern int	CONFIG_PREPROCMAN_FORKS;
 extern int	CONFIG_PREPROCESSOR_FORKS;
+extern int  CONFIG_LUA_POLLER_FORKS;
 
 extern unsigned char	process_type;
 extern int		process_num;
@@ -192,6 +193,8 @@ int	get_process_type_forks(unsigned char proc_type)
 			return CONFIG_PREPROCMAN_FORKS;
 		case ZBX_PROCESS_TYPE_PREPROCESSOR:
 			return CONFIG_PREPROCESSOR_FORKS;
+		case ZBX_PROCESS_TYPE_LUA:
+			return CONFIG_LUA_POLLER_FORKS;
 	}
 
 	THIS_SHOULD_NEVER_HAPPEN;
@@ -272,6 +275,8 @@ const char	*get_process_type_string(unsigned char proc_type)
 			return "preprocessing manager";
 		case ZBX_PROCESS_TYPE_PREPROCESSOR:
 			return "preprocessing worker";
+		case ZBX_PROCESS_TYPE_LUA:
+			return "Lua Items";
 	}
 
 	THIS_SHOULD_NEVER_HAPPEN;

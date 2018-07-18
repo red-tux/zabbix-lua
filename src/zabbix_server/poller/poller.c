@@ -43,9 +43,17 @@
 #include "checks_java.h"
 #include "checks_calculated.h"
 #include "../../libs/zbxcrypto/tls.h"
+#ifdef HAVE_LUA
+#include "lua.h"
+#include "zbxlua.h"
+#include "checks_lua.h"
+#endif /* HAVE_LUA */
 
 extern unsigned char	process_type, program_type;
 extern int		server_num, process_num;
+#ifdef HAVE_LUA
+lua_State	*L = NULL;
+#endif  /* HAVE_LUA */
 
 /******************************************************************************
  *                                                                            *
@@ -396,6 +404,15 @@ static int	get_value(DC_ITEM *item, AGENT_RESULT *result, zbx_vector_ptr_t *add_
 		case ITEM_TYPE_CALCULATED:
 			res = get_value_calculated(item, result);
 			break;
+		case ITEM_TYPE_LUA:
+#ifdef HAVE_LUA
+			res = get_lua_item(L, item, result);
+			break;
+#else
+			SET_MSG_RESULT(result, strdup("Support for LUA parameters was not compiled in"));
+			res = NOTSUPPORTED;
+#endif
+
 		default:
 			SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Not supported item type:%d", item->type));
 			res = CONFIG_ERROR;
@@ -755,6 +772,14 @@ ZBX_THREAD_ENTRY(poller_thread, args)
 	last_stat_time = time(NULL);
 
 	DBconnect(ZBX_DB_CONNECT_NORMAL);
+
+#ifdef HAVE_LUA
+if (poller_type == ZBX_POLLER_TYPE_LUA)
+	{
+		zabbix_log(LOG_LEVEL_DEBUG, "Poller is type Lua, setting up");
+		L = init_lua_env();
+	}
+#endif /* HAVE_LUA */
 
 	for (;;)
 	{

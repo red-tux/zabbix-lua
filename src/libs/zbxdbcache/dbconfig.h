@@ -658,6 +658,9 @@ typedef struct
 	zbx_hashset_t		psks;			/* for keeping PSK-identity and PSK pairs and for searching */
 							/* by PSK identity */
 #endif
+#ifdef HAVE_LUA
+	zbx_hashset_t		luaitems;
+#endif
 	zbx_binary_heap_t	queues[ZBX_POLLER_TYPE_COUNT];
 	zbx_binary_heap_t	pqueue;
 	zbx_vector_uint64_t	locked_lld_ruleids;	/* for keeping track of lld rules being processed */

@@ -1251,23 +1251,26 @@ if test "x$server" = "xyes" || test "x$proxy" = "xyes"; then
 	PROXY_LDFLAGS="${PROXY_LDFLAGS} ${DB_LDFLAGS}"
 	PROXY_LIBS="${PROXY_LIBS} ${DB_LIBS}"
 
-    dnl Checking for Lua
-    AC_ARG_WITH([lua],[AS_HELP_STRING([--with-lua],[Enable Lua support])])
+	dnl Checking for Lua
+	AC_ARG_WITH([lua],[AS_HELP_STRING([--with-lua],[Enable Lua support])])
 
 	AX_PROG_LUA([5.1],[],[found_lua="yes"])
 	if test "x$with_lua" = "xyes"; then
-	  if test "x$found_lua" != "xyes"; then
-	    AC_MSG_ERROR([Lua library not found])
-	  else
-	    have_lua="yes"
-	    AX_LUA_HEADERS([],[AC_MSG_ERROR([Lua headers not found])])
-	    AX_LUA_LIBS([],[AC_MSG_ERROR([Lua libraries not found])])
-	  fi
+		if test "x$found_lua" != "xyes"; then
+			AC_MSG_ERROR([Lua library not found])
+		else
+			have_lua="yes"
+			AX_LUA_HEADERS([],[AC_MSG_ERROR([Lua headers not found])])
+			AX_LUA_LIBS([],[AC_MSG_ERROR([Lua libraries not found])])
+			AC_DEFINE([HAVE_LUA],1,[Lua found and enabled])
+		fi
 	fi
 
-	CFLAGS="${CFLAGS} ${CPPFLAGS}"
-#	SERVER_LDFLAGS="${SERVER_LDFLAGS} ${LUA_LDFLAGS}"
+	CFLAGS="${CFLAGS} ${LUA_INCLUDE}"
+	SERVER_LDFLAGS="${SERVER_LDFLAGS} ${LUA_LDADD}"
 	SERVER_LIBS="${SERVER_LIBS} ${LUA_LIB}"
+
+	AM_CONDITIONAL(LUA, test "x$have_lua" = "xyes")
 
 	dnl Checking for Jabber libraries
 	JABBER_CHECK_CONFIG()

@@ -89,7 +89,7 @@ static int	uint64_concat(lua_State *L)
 }
 
 int	luaopen_uint64 (lua_State *L) {
-	static const struct luaL_reg uint64_type[] = {
+	static const struct luaL_Reg uint64_type[] = {
 		{ "__add", uint64_add },
 		{ "__sub", uint64_sub },
 		{ "__mul", uint64_mul },

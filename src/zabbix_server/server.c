@@ -165,6 +165,7 @@ int	CONFIG_IPMIMANAGER_FORKS	= 0;
 int	CONFIG_ALERTMANAGER_FORKS	= 1;
 int	CONFIG_PREPROCMAN_FORKS		= 1;
 int	CONFIG_PREPROCESSOR_FORKS	= 3;
+int CONFIG_LUA_POLLER_FORKS		= 1;
 
 int	CONFIG_LISTEN_PORT		= ZBX_DEFAULT_SERVER_PORT;
 char	*CONFIG_LISTEN_IP		= NULL;
@@ -216,6 +217,10 @@ char	*CONFIG_JAVA_GATEWAY		= NULL;
 int	CONFIG_JAVA_GATEWAY_PORT	= ZBX_DEFAULT_GATEWAY_PORT;
 
 char	*CONFIG_SSH_KEY_LOCATION	= NULL;
+char	*CONFIG_LUA_SCRIPT_LIBRARY	= NULL;
+char	*CONFIG_LUA_DEFAULT_USER	= NULL;
+
+char	CONFIG_LUA_CHECK_PERMISSIONS	= 0;
 
 int	CONFIG_LOG_SLOW_QUERIES		= 0;	/* ms; 0 - disable */
 
@@ -384,6 +389,11 @@ int	get_process_info_by_thread(int local_server_num, unsigned char *local_proces
 		*local_process_type = ZBX_PROCESS_TYPE_PREPROCESSOR;
 		*local_process_num = local_server_num - server_count + CONFIG_PREPROCESSOR_FORKS;
 	}
+    else if (local_server_num <= (server_count += CONFIG_LUA_POLLER_FORKS))
+    {
+        *local_process_type = ZBX_PROCESS_TYPE_LUA;
+        *local_process_num = local_server_num - server_count + CONFIG_LUA_POLLER_FORKS;
+    }
 	else
 		return FAIL;
 
@@ -446,6 +456,12 @@ static void	zbx_set_defaults(void)
 
 	if (NULL == CONFIG_SOCKET_PATH)
 		CONFIG_SOCKET_PATH = zbx_strdup(CONFIG_SOCKET_PATH, "/tmp");
+
+	/* Lua defaults */
+	if (CONFIG_LUA_DEFAULT_USER == NULL)
+	{
+		CONFIG_LUA_DEFAULT_USER = strdup("guest");
+	}
 }
 
 /******************************************************************************
@@ -683,6 +699,15 @@ static void	zbx_load_config(ZBX_TASK_EX *task)
 			PARM_OPT,	1,			100},
 		{"StartPreprocessors",		&CONFIG_PREPROCESSOR_FORKS,		TYPE_INT,
 			PARM_OPT,	1,			1000},
+		/* Lua Config Options */
+		{"StartLUAPollers",		&CONFIG_LUA_POLLER_FORKS,		TYPE_INT,
+			PARM_OPT,	0,			10},
+		{"LuaScriptLibrary",		&CONFIG_LUA_SCRIPT_LIBRARY,		TYPE_STRING,
+			PARM_OPT,	0,			0},
+		{"LuaCheckPermissions",		&CONFIG_LUA_CHECK_PERMISSIONS,		TYPE_INT,
+			PARM_OPT,	0,			0},
+		{"LuaDefaltUser",		&CONFIG_LUA_DEFAULT_USER,		TYPE_STRING,
+			PARM_OPT,	0,			0},
 		{NULL}
 	};
 
@@ -888,6 +913,11 @@ int	MAIN_ZABBIX_ENTRY(int flags)
 #else
 #	define TLS_FEATURE_STATUS	" NO"
 #endif
+#ifdef HAVE_LUA
+#	define LUA_FEATURE_STATUS "YES"
+#else
+#	define LUA_FEATURE_STATUS " NO"
+#endif
 
 	zabbix_log(LOG_LEVEL_INFORMATION, "Starting Zabbix Server. Zabbix %s (revision %s).",
 			ZABBIX_VERSION, ZABBIX_REVISION);
@@ -900,6 +930,7 @@ int	MAIN_ZABBIX_ENTRY(int flags)
 	zabbix_log(LOG_LEVEL_INFORMATION, "SMTP authentication:       " SMTP_AUTH_FEATURE_STATUS);
 	zabbix_log(LOG_LEVEL_INFORMATION, "Jabber notifications:      " JABBER_FEATURE_STATUS);
 	zabbix_log(LOG_LEVEL_INFORMATION, "Ez Texting notifications:  " LIBCURL_FEATURE_STATUS);
+	zabbix_log(LOG_LEVEL_INFORMATION, "LUA Scripting:             " LUA_FEATURE_STATUS);
 	zabbix_log(LOG_LEVEL_INFORMATION, "ODBC:                      " ODBC_FEATURE_STATUS);
 	zabbix_log(LOG_LEVEL_INFORMATION, "SSH2 support:              " SSH2_FEATURE_STATUS);
 	zabbix_log(LOG_LEVEL_INFORMATION, "IPv6 support:              " IPV6_FEATURE_STATUS);
@@ -998,7 +1029,8 @@ int	MAIN_ZABBIX_ENTRY(int flags)
 			+ CONFIG_ESCALATOR_FORKS + CONFIG_IPMIPOLLER_FORKS + CONFIG_JAVAPOLLER_FORKS
 			+ CONFIG_SNMPTRAPPER_FORKS + CONFIG_PROXYPOLLER_FORKS + CONFIG_SELFMON_FORKS
 			+ CONFIG_VMWARE_FORKS + CONFIG_TASKMANAGER_FORKS + CONFIG_IPMIMANAGER_FORKS
-			+ CONFIG_ALERTMANAGER_FORKS + CONFIG_PREPROCMAN_FORKS + CONFIG_PREPROCESSOR_FORKS;
+			+ CONFIG_ALERTMANAGER_FORKS + CONFIG_PREPROCMAN_FORKS + CONFIG_PREPROCESSOR_FORKS
+			+ CONFIG_LUA_POLLER_FORKS;
 	threads = zbx_calloc(threads, threads_num, sizeof(pid_t));
 
 	if (0 != CONFIG_TRAPPER_FORKS)
@@ -1109,6 +1141,13 @@ int	MAIN_ZABBIX_ENTRY(int flags)
 			case ZBX_PROCESS_TYPE_ALERTMANAGER:
 				threads[i] = zbx_thread_start(alert_manager_thread, &thread_args);
 				break;
+#ifdef HAVE_LUA
+            case ZBX_PROCESS_TYPE_LUA:
+			    poller_type = ZBX_PROCESS_TYPE_LUA;
+				thread_args.args = &poller_type;
+				threads[i] = zbx_thread_start(poller_thread, &thread_args);
+				break;
+#endif
 		}
 	}
 

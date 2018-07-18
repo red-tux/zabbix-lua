@@ -5902,9 +5902,8 @@ static void	DCget_item(DC_ITEM *dst_item, const ZBX_DC_ITEM *src_item)
 		case ITEM_TYPE_LUA:
 			if (NULL != (luaitem = zbx_hashset_search(&config->luaitems, &src_item->itemid)))
 			{
-				strscpy(dst_item->params_orig, luaitem->params);
-				strscpy(dst_item->username_orig, luaitem->username);
-				dst_item->params = NULL;
+                strscpy(dst_item->username_orig, luaitem->username);
+                dst_item->params = zbx_strdup(NULL, luaitem->params);
 				dst_item->username = NULL;
 				}
 			break;

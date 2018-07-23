@@ -430,6 +430,9 @@ class CItem extends CItemGeneral {
 			if ($item['type'] != ITEM_TYPE_DEPENDENT) {
 				$item['master_itemid'] = null;
 			}
+			elseif ($item['type'] == ITEM_TYPE_LUA) {
+				$item['username'] = self::$userData['userid'];
+			}
 		}
 		unset($item);
 

@@ -416,6 +416,7 @@ define('ITEM_TYPE_CALCULATED',		15);
 define('ITEM_TYPE_JMX',				16);
 define('ITEM_TYPE_SNMPTRAP',		17);
 define('ITEM_TYPE_DEPENDENT',		18);
+define('ITEM_TYPE_LUA',				19);
 
 define('ZBX_DEPENDENT_ITEM_MAX_LEVELS',	3);
 define('ZBX_DEPENDENT_ITEM_MAX_COUNT',	999);
@@ -435,6 +436,7 @@ define('ZBX_DEFAULT_KEY_DB_MONITOR',			'db.odbc.select[<unique short description
 define('ZBX_DEFAULT_KEY_DB_MONITOR_DISCOVERY',	'db.odbc.discovery[<unique short description>,<dsn>]');
 define('ZBX_DEFAULT_KEY_SSH',					'ssh.run[<unique short description>,<ip>,<port>,<encoding>]');
 define('ZBX_DEFAULT_KEY_TELNET',				'telnet.run[<unique short description>,<ip>,<port>,<encoding>]');
+define('ZBX_DEFAULT_KEY_LUA',					'lua[<unique short description>]');
 
 define('ZBX_DEFAULT_JMX_ENDPOINT',	'service:jmx:rmi:///jndi/rmi://{HOST.CONN}:{HOST.PORT}/jmxrmi');
 

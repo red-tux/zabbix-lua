@@ -1,12 +1,15 @@
 Working list of lua entries yet to be ported over into new code.
 
-frontends/php/items.php:96:					ITEM_TYPE_IPMI,ITEM_TYPE_SSH,ITEM_TYPE_TELNET,ITEM_TYPE_JMX,ITEM_TYPE_CALCULATED,ITEM_TYPE_SNMPTRAP,ITEM_TYPE_LUA)),'isset({save})'),
-frontends/php/items.php:192:				ITEM_TYPE_IPMI,ITEM_TYPE_SSH,ITEM_TYPE_TELNET,ITEM_TYPE_JMX,ITEM_TYPE_CALCULATED,ITEM_TYPE_SNMPTRAP,ITEM_TYPE_LUA)),null),
+* frontends/php/items.php:96:					ITEM_TYPE_IPMI,ITEM_TYPE_SSH,ITEM_TYPE_TELNET,ITEM_TYPE_JMX,ITEM_TYPE_CALCULATED,ITEM_TYPE_SNMPTRAP,ITEM_TYPE_LUA)),'isset({save})'),
+* frontends/php/items.php:192:				ITEM_TYPE_IPMI,ITEM_TYPE_SSH,ITEM_TYPE_TELNET,ITEM_TYPE_JMX,ITEM_TYPE_CALCULATED,ITEM_TYPE_SNMPTRAP,ITEM_TYPE_LUA)),null),
 
-frontends/php/api/classes/class.citemgeneral.php:227:					|| ($fullItem['type'] == ITEM_TYPE_LUA && strcmp($fullItem['key_'], ZBX_DEFAULT_KEY_LUA) == 0)) {
+* frontends/php/api/classes/class.citemgeneral.php:227:					|| ($fullItem['type'] == ITEM_TYPE_LUA && strcmp($fullItem['key_'], ZBX_DEFAULT_KEY_LUA) == 0)) {
+    // Information now split amongst CItemGeneral.php and common.item.edit.js.php
 
-frontends/php/api/classes/class.citem.php:931:			if ($item['type'] == ITEM_TYPE_LUA) {
+* frontends/php/api/classes/class.citem.php:931:			if ($item['type'] == ITEM_TYPE_LUA) {
+    //appears to go into include/classes/api/services/citem.php
 frontends/php/api/classes/class.citem.php:1007:			if ($item_type == ITEM_TYPE_LUA) {
+    //TODO: Unknown location
 
 frontends/php/include/forms.inc.php:1365:				case ITEM_TYPE_LUA:
 frontends/php/include/forms.inc.php:1429:		$spanL = new CSpan(S_LUA_SCRIPT);
@@ -18,8 +21,8 @@ frontends/php/include/items.inc.php:95:		ITEM_TYPE_LUA => _('Lua script'),
 frontends/php/include/locales/en_gb.inc.php:576:	'S_LUA_SCRIPT_TYPE'=>					_('Lua script'),
 frontends/php/include/locales/en_gb.inc.php:577:	'S_LUA_SCRIPT'=>					_('Script'),
 
-frontends/php/include/defines.inc.php:326:define('ITEM_TYPE_LUA',				18);
-frontends/php/include/defines.inc.php:343:define('ZBX_DEFAULT_KEY_LUA',			'lua[<unique short description>]');
+* frontends/php/include/defines.inc.php:326:define('ITEM_TYPE_LUA',				18);
+* frontends/php/include/defines.inc.php:343:define('ZBX_DEFAULT_KEY_LUA',			'lua[<unique short description>]');
 
 * src/zabbix_server/server.c:125:int	CONFIG_LUA_POLLER_FORKS		= 1;
 * src/zabbix_server/server.c:177:char	*CONFIG_LUA_SCRIPT_LIBRARY	= NULL;

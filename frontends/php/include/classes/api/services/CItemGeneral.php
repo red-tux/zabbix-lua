@@ -360,6 +360,9 @@ abstract class CItemGeneral extends CApiService {
 					|| ($fullItem['type'] == ITEM_TYPE_TELNET && strcmp($fullItem['key_'], ZBX_DEFAULT_KEY_TELNET) == 0)) {
 				self::exception(ZBX_API_ERROR_PARAMETERS, _('Check the key, please. Default example was passed.'));
 			}
+			elseif ($fullItem['type'] == ITEM_TYPE_LUA && strcmp($fullItem['key_'], ZBX_DEFAULT_KEY_LUA) == 0){
+				self::exception(ZBX_API_ERROR_PARAMETERS, _('Check the key, please. Default example was passed.'));
+			}
 
 			// key
 			if ($item_key_parser->parse($fullItem['key_']) != CParser::PARSE_SUCCESS) {

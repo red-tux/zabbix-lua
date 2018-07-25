@@ -32,6 +32,8 @@ static const char	*zbx_evaluators[] = {
 	"eval_fuzzytime"
 };
 
+extern  int	get_host_permission(zbx_uint64_t userid, zbx_uint64_t hostid);
+
 /******************************************************************************
  *                                                                            *
  * Function: check_hostid_read_permission                                     *
@@ -59,6 +61,8 @@ static int	check_hostid_read_permission(const zbx_uint64_t userid, zbx_uint64_t 
 
 	zabbix_log(LOG_LEVEL_DEBUG, "In %s "ZBX_FS_UI64":"ZBX_FS_UI64, _name, userid, hostid);
 
+	/* TODO: Port to new function:
+	 * zbx_check_user_permissions(const zbx_uint64_t *userid, const zbx_uint64_t *recipient_userid) */
 	retval = (PERM_DENY == get_host_permission(userid, hostid)) ? FAIL : SUCCEED;
 
 	zabbix_log(LOG_LEVEL_DEBUG, "End of %s: %s", (retval ? "TRUE" : "FAIL"));
@@ -121,17 +125,6 @@ static int	item_find(lua_State *L)
 	if (lua_isnumber(L, 1) || lua_isuint64(L, 1)) /* itemid, <> */
 	{
 		itemid = lua_touint64(L, 1);
-
-		if (lua_gettop(L) > 2) /* itemid, nodeid */
-		{
-			if (lua_isnumber(L, 2) || lua_isuint64(L, 2))
-			{
-				nodeid = lua_touint64(L, 2);
-				/* nodeids are 14 digits to the left */
-				itemid = nodeid * (zbx_uint64_t)__UINT64_C(100000000000000) + itemid;
-			}
-			/* silently ignore everything else */
-		}
 
 		result = DBselect("select %s where i.itemid='%d'", ZBX_SQL_ITEM_SELECT, itemid);
 	}
